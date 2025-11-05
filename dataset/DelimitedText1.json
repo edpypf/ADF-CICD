@@ -9,13 +9,65 @@
 		"type": "DelimitedText",
 		"typeProperties": {
 			"location": {
-				"type": "AzureBlobStorageLocation"
+				"type": "AzureBlobStorageLocation",
+				"fileName": "20250713.csv",
+				"folderPath": "src",
+				"container": "dev"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
 			"firstRowAsHeader": true,
 			"quoteChar": "\""
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "Ticker",
+				"type": "String"
+			},
+			{
+				"name": "IV",
+				"type": "String"
+			},
+			{
+				"name": "IVChg",
+				"type": "String"
+			},
+			{
+				"name": "IV:HV",
+				"type": "String"
+			},
+			{
+				"name": "Rank",
+				"type": "String"
+			},
+			{
+				"name": "Pctl",
+				"type": "String"
+			},
+			{
+				"name": "HV20",
+				"type": "String"
+			},
+			{
+				"name": "HV30",
+				"type": "String"
+			},
+			{
+				"name": "HV90",
+				"type": "String"
+			},
+			{
+				"name": "Close",
+				"type": "String"
+			},
+			{
+				"name": "ChgPct",
+				"type": "String"
+			},
+			{
+				"name": "Date",
+				"type": "String"
+			}
+		]
 	}
 }
