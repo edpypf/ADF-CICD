@@ -1,0 +1,105 @@
+name: ADF CI/CD with JFrog
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  ARTIFACTORY_URL: https://yourcompany.jfrog.io/artifactory
+  ARTIFACTORY_REPO: my-adf-repo/adf-artifacts
+  EXPORT_FOLDER: ExportedArmTemplate
+  BUILD_FOLDER: build
+  ROOT_FOLDER: ${{ github.workspace }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Display repo structure before build
+        run: |
+          echo "==== Current repo structure ===="
+          tree -L 2 || ls -R
+
+      - name: Install ADF Utilities
+        run: npm install
+        working-directory: ${{ env.BUILD_FOLDER }}
+
+      - name: Validate ADF
+        run: |
+          echo "Validating ADF in root folder..."
+          npm run build validate ${{ env.ROOT_FOLDER }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
+        working-directory: ${{ env.BUILD_FOLDER }}
+
+      - name: Export ARM Templates
+        run: |
+          echo "Exporting ADF to ARM template..."
+          npm run build export ${{ env.ROOT_FOLDER }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ${{ env.EXPORT_FOLDER }}
+        working-directory: ${{ env.BUILD_FOLDER }}
+
+      - name: Verify generated ARM files
+        run: |
+          echo "==== Exported files ===="
+          ls -R ${{ env.BUILD_FOLDER }}/${{ env.EXPORT_FOLDER }}
+
+      - name: Upload ARM Templates to JFrog
+        run: |
+          echo "==== Uploading to JFrog ===="
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
+            -T "${{ env.BUILD_FOLDER }}/${{ env.EXPORT_FOLDER }}/ARMTemplateForFactory.json" \
+            "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateForFactory.json"
+
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
+            -T "${{ env.BUILD_FOLDER }}/${{ env.EXPORT_FOLDER }}/ARMTemplateParametersForFactory.json" \
+            "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateParametersForFactory.json"
+
+      - name: Confirm upload success
+        run: |
+          echo "Listing contents in Artifactory repo..."
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
+            -X GET "${{ env.ARTIFACTORY_URL }}/api/storage/${{ env.ARTIFACTORY_REPO }}?list"
+          echo "✅ Uploaded successfully to JFrog!"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download ARM templates from JFrog
+        run: |
+          mkdir -p ${{ env.EXPORT_FOLDER }}
+          echo "==== Downloading ARM templates from JFrog ===="
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
+            -O "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateForFactory.json"
+          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
+            -O "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateParametersForFactory.json"
+
+          echo "==== Files downloaded ===="
+          ls -l
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy ARM template to Data Factory (Prod)
+        uses: azure/arm-deploy@v2
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: adf-prod
+          template: ARMTemplateForFactory.json
+          parameters: ARMTemplateParametersForFactory.json
+          deploymentName: adf-prod-deployment
+
+      - name: Verify deployment status
+        run: |
+          echo "==== Checking deployment result ===="
+          az deployment group show \
+            --resource-group adf-prod \
+            --name adf-prod-deployment \
+            --query "{status:properties.provisioningState, outputs:properties.outputs}"
