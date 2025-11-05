@@ -62,3 +62,47 @@ jobs:
       # Download from JFrog (fresh copy from artifact repo)
       - name: Download ARM templates from JFrog
         env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        run: |
+          echo "Downloading ARM templates from JFrog..."
+          curl -f -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
+               -O "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateForFactory.json"
+          curl -f -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
+               -O "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateParametersForFactory.json"
+
+      # ✅ Debug step to verify content before deploy
+      - name: Debug ARM template content
+        run: |
+          echo "===== ARMTemplateForFactory.json: First 10 lines ====="
+          head -n 10 ARMTemplateForFactory.json || true
+          echo ""
+          echo "===== File Info ====="
+          file ARMTemplateForFactory.json || true
+          echo ""
+          echo "===== JSON Validation ====="
+          if jq . ARMTemplateForFactory.json >/dev/null 2>&1; then
+            echo "✅ JSON is valid."
+          else
+            echo "❌ Invalid JSON! Dumping first lines for inspection:"
+            head -n 20 ARMTemplateForFactory.json
+            exit 1
+          fi
+          echo "===== File Size ====="
+          ls -lh ARMTemplateForFactory.json
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      - name: Deploy to Data Factory
+        uses: Azure/data-factory-deploy-action@v1.2.0
+        with:
+          resourceGroupName: adf-cicd
+          dataFactoryName: edpypfadfprod
+          armTemplateFile: ARMTemplateForFactory.json
+          armTemplateParametersFile: ARMTemplateParametersForFactory.json
