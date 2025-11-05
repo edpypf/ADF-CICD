@@ -32,7 +32,7 @@ jobs:
         working-directory: ${{ github.workspace }}/build
 
       - name: Validate and Generate ARM template
-        run: npm run build export ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfprod
+        run: npm run build export ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
         working-directory: ${{ github.workspace }}/build
 
       - name: Upload ARM template artifact
