@@ -1,5 +1,3 @@
-Set up a workflow in the action tab of the repo using this code
-
 name: adf-cicd
 
 on:
