@@ -57,7 +57,7 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         run: |
-          ./jfrog rt u "build/ExportedArmTemplate/(*)" "adf-templates/dev/${{ github.run_number }}/\1" \
+          ./jfrog rt u "build/ExportedArmTemplate/(*)" "my-adf-repo/dev/${{ github.run_number }}/\1" \
             --flat=false --server-id=adf
 
   release:
