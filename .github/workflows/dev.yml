@@ -39,16 +39,6 @@ jobs:
           name: ExportedArmTemplate
           path: ${{ github.workspace }}/build/ExportedArmTemplate
 
-      # ✅ 新增：上传至 JFrog Artifactory
-      - name: Upload artifact to JFrog Artifactory
-        env:
-          JF_URL: ${{ secrets.JF_URL }}                    # 例如：https://mycompany.jfrog.io/artifactory
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}  # 用 reference token，而非旧 API Key
-        run: |
-          curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-               -T "${{ github.workspace }}/build/ExportedArmTemplate/ARMTemplateForFactory.json" \
-               "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateForFactory.json"
-
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -57,17 +47,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ExportedArmTemplate
-
-      # ✅ 如果要从 JFrog 拉取 artifact（例如从 dev pipeline 中下载到 prod 环境）
-      - name: Download ARM template from JFrog
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-        run: |
-          curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-               -O "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateForFactory.json"
-          curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-               -O "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateParametersForFactory.json"
 
       - name: Azure login
         uses: azure/login@v1
@@ -84,3 +63,4 @@ jobs:
           dataFactoryName: edpypfadfprod
           armTemplateFile: ARMTemplateForFactory.json
           armTemplateParametersFile: ARMTemplateParametersForFactory.json
+          # additionalParameters: 'factoryName=Test-ADF-111' # optional, if needed for dynamic replacements
