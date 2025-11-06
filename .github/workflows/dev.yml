@@ -59,12 +59,15 @@ jobs:
           JF_URL: https://trialb2qcp1.jfrog.io
         with:
           oidc-provider-name: edpypf/ADF-CICD@github
-      
+
+      - name: List exported template files
+        run: ls -R build/ExportedArmTemplate
+  
       # 🚀 Upload Exported ARM Template to JFrog Artifactory
       - name: Upload ARM template folder to JFrog Artifactory
         run: |
-          jfrog rt u "build/ExportedArmTemplate/(*)" "adf_artifact_repo/dev/${{ github.run_number }}/\1" \
-            --flat=false          
+          jfrog rt u "build/ExportedArmTemplate/**/*" "adf_artifact_repo/dev/${{ github.run_number }}/" --flat=false
+          # jfrog rt u "build/ExportedArmTemplate/(*)" "adf_artifact_repo/dev/${{ github.run_number }}/\1" --flat=false          
 
       - name: Azure login
         uses: azure/login@v1
