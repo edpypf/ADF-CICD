@@ -26,11 +26,11 @@ jobs:
         working-directory: ${{ github.workspace }}/build
 
       - name: Validate ADF resources
-        run: npm run build validate ${{ github.workspace }}/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
+        run: npm run build validate ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
         working-directory: ${{ github.workspace }}/build
 
       - name: Validate and Generate ARM template
-        run: npm run build export ${{ github.workspace }}/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
+        run: npm run build export ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
         working-directory: ${{ github.workspace }}/build
 
       - name: Upload ARM template artifact
