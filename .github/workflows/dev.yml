@@ -1,105 +1,66 @@
-name: ADF CI/CD with JFrog
+name: adf-cicd
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - dev
 
-env:
-  ARTIFACTORY_URL: https://yourcompany.jfrog.io/artifactory
-  ARTIFACTORY_REPO: my-adf-repo/adf-artifacts
-  EXPORT_FOLDER: ExportedArmTemplate
-  BUILD_FOLDER: build
-  ROOT_FOLDER: ${{ github.workspace }}
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Display repo structure before build
-        run: |
-          echo "==== Current repo structure ===="
-          tree -L 2 || ls -R
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
 
-      - name: Install ADF Utilities
+      - name: Install ADF Utilities package
         run: npm install
-        working-directory: ${{ env.BUILD_FOLDER }}
+        working-directory: ${{ github.workspace }}/build
 
-      - name: Validate ADF
-        run: |
-          echo "Validating ADF in root folder..."
-          npm run build validate ${{ env.ROOT_FOLDER }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
-        working-directory: ${{ env.BUILD_FOLDER }}
+      - name: Validate ADF resources
+        run: npm run build validate ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
+        working-directory: ${{ github.workspace }}/build
 
-      - name: Export ARM Templates
-        run: |
-          echo "Exporting ADF to ARM template..."
-          npm run build export ${{ env.ROOT_FOLDER }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ${{ env.EXPORT_FOLDER }}
-        working-directory: ${{ env.BUILD_FOLDER }}
+      - name: Validate and Generate ARM template
+        run: npm run build export ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
+        working-directory: ${{ github.workspace }}/build
 
-      - name: Verify generated ARM files
-        run: |
-          echo "==== Exported files ===="
-          ls -R ${{ env.BUILD_FOLDER }}/${{ env.EXPORT_FOLDER }}
+      - name: Upload ARM template artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExportedArmTemplate
+          path: ${{ github.workspace }}/build/ExportedArmTemplate
 
-      - name: Upload ARM Templates to JFrog
-        run: |
-          echo "==== Uploading to JFrog ===="
-          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
-            -T "${{ env.BUILD_FOLDER }}/${{ env.EXPORT_FOLDER }}/ARMTemplateForFactory.json" \
-            "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateForFactory.json"
-
-          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
-            -T "${{ env.BUILD_FOLDER }}/${{ env.EXPORT_FOLDER }}/ARMTemplateParametersForFactory.json" \
-            "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateParametersForFactory.json"
-
-      - name: Confirm upload success
-        run: |
-          echo "Listing contents in Artifactory repo..."
-          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
-            -X GET "${{ env.ARTIFACTORY_URL }}/api/storage/${{ env.ARTIFACTORY_REPO }}?list"
-          echo "✅ Uploaded successfully to JFrog!"
-
-  deploy:
-    runs-on: ubuntu-latest
+  release:
     needs: build
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Download ARM templates from JFrog
-        run: |
-          mkdir -p ${{ env.EXPORT_FOLDER }}
-          echo "==== Downloading ARM templates from JFrog ===="
-          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
-            -O "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateForFactory.json"
-          curl -u "${{ secrets.JFROG_USERNAME }}:${{ secrets.JFROG_API_KEY }}" \
-            -O "${{ env.ARTIFACTORY_URL }}/${{ env.ARTIFACTORY_REPO }}/ARMTemplateParametersForFactory.json"
-
-          echo "==== Files downloaded ===="
-          ls -l
-
-      - name: Azure Login
-        uses: azure/login@v2
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          name: ExportedArmTemplate
 
-      - name: Deploy ARM template to Data Factory (Prod)
-        uses: azure/arm-deploy@v2
+      - name: Azure login
+        uses: azure/login@v1
         with:
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          resourceGroupName: adf-prod
-          template: ARMTemplateForFactory.json
-          parameters: ARMTemplateParametersForFactory.json
-          deploymentName: adf-prod-deployment
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
 
-      - name: Verify deployment status
-        run: |
-          echo "==== Checking deployment result ===="
-          az deployment group show \
-            --resource-group adf-prod \
-            --name adf-prod-deployment \
-            --query "{status:properties.provisioningState, outputs:properties.outputs}"
+      - name: Deploy to Data Factory
+        uses: Azure/data-factory-deploy-action@v1.2.0
+        with:
+          resourceGroupName: adf-cicd
+          dataFactoryName: edpypfadfprod
+          armTemplateFile: ARMTemplateForFactory.json
+          armTemplateParametersFile: ARMTemplateParametersForFactory.json
+          # additionalParameters: 'factoryName=Test-ADF-111' # optional, if needed for dynamic replacements
