@@ -1,1 +1,3 @@
-{"publishBranch":"adf_publish","includeGlobalParamsTemplate":true}
+{
+  "publishBranch": "dev"
+}
