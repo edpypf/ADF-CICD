@@ -81,4 +81,5 @@ jobs:
           dataFactoryName: edpypfadfprod
           armTemplateFile: ARMTemplateForFactory.json
           armTemplateParametersFile: ARMTemplateParametersForFactory.json
+          path: ${{ github.workspace }}/build/ExportedArmTemplate
           # additionalParameters: 'factoryName=Test-ADF-111' # optional, if needed for dynamic replacements
