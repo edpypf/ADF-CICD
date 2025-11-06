@@ -39,6 +39,15 @@ jobs:
           name: ExportedArmTemplate
           path: ${{ github.workspace }}/build/ExportedArmTemplate
 
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ExportedArmTemplate
+
       # 🧩 Setup JFrog CLI with OIDC authentication
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,16 +62,7 @@ jobs:
       - name: Upload ARM template folder to JFrog Artifactory
         run: |
           jfrog rt u "build/ExportedArmTemplate/(*)" "my-adf-repo/dev/${{ github.run_number }}/\1" \
-            --flat=false
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ExportedArmTemplate
+            --flat=false          
 
       - name: Azure login
         uses: azure/login@v1
