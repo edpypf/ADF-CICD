@@ -53,7 +53,7 @@ jobs:
       - name: Upload ARM template folder to JFrog Artifactory
         run: |
           jfrog rt u "build/ExportedArmTemplate/(*)" "my-adf-repo/dev/${{ github.run_number }}/\1" \
-            --flat=false --server-id=github-jfrog
+            --flat=false
 
   release:
     needs: build
