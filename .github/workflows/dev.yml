@@ -29,14 +29,14 @@ jobs:
         run: |
           set -e
           # forward args after -- and use '.' since we're running in the build folder
-          npm run build -- validate . /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
+          npm run build -- validate ${{ github.workspace }}/build/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
         working-directory: ${{ github.workspace }}/build
 
       - name: Validate and Generate ARM template
         run: |
           set -e
           # forward args after -- and use '.' so the exported template is created under the build folder
-          npm run build -- export . /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
+          npm run build -- export ${{ github.workspace }}/build/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
         working-directory: ${{ github.workspace }}/build
 
       - name: Show generated files for debug
