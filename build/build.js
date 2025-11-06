@@ -7,7 +7,7 @@ const exportPath = path.resolve(__dirname, "./ExportedArmTemplate");
 const options = {
   factory: {
     name: "edpypfadfdev",
-    resourceId: "/subscriptions/<your-subscription-id>/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev",
+    resourceId: "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev",
   },
   exportFolder: exportPath,
 };
