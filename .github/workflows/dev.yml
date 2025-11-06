@@ -79,7 +79,6 @@ jobs:
         with:
           resourceGroupName: adf-cicd
           dataFactoryName: edpypfadfprod
-          armTemplateFile: ARMTemplateForFactory.json
-          armTemplateParametersFile: ARMTemplateParametersForFactory.json
-          working-directory: ${{ github.workspace }}/build/ExportedArmTemplate
+          armTemplateFile: build/ExportedArmTemplate/ARMTemplateForFactory.json
+          armTemplateParametersFile: build/ExportedArmTemplate/ARMTemplateParametersForFactory.json
        
