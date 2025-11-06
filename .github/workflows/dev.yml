@@ -40,6 +40,8 @@ jobs:
           path: ${{ github.workspace }}/build/ExportedArmTemplate
 
       # 🧩 Setup JFrog CLI with OIDC authentication
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
         env:
