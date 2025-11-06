@@ -26,51 +26,18 @@ jobs:
         working-directory: ${{ github.workspace }}/build
 
       - name: Validate ADF resources
-        run: |
-          set -e
-          # forward args after -- and use '.' since we're running in the build folder
-          npm run build -- validate ${{ github.workspace }}/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
+        run: npm run build validate ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev
         working-directory: ${{ github.workspace }}/build
 
       - name: Validate and Generate ARM template
-        run: |
-          set -e
-          # forward args after -- and use '.' so the exported template is created under the build folder
-          npm run build -- export ${{ github.workspace }}/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
+        run: npm run build export ${{ github.workspace }}/ /subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/adf-cicd/providers/Microsoft.DataFactory/factories/edpypfadfdev ExportedArmTemplate
         working-directory: ${{ github.workspace }}/build
-
-      - name: Show generated files for debug
-        run: |
-          echo "Listing workspace root:"
-          ls -la "${{ github.workspace }}" || true
-          echo "Listing build folder:"
-          ls -la "${{ github.workspace }}/build" || true
-          echo "Listing ExportedArmTemplate (if present):"
-          ls -la "${{ github.workspace }}/build/ExportedArmTemplate" || true
 
       - name: Upload ARM template artifact
         uses: actions/upload-artifact@v4
         with:
           name: ExportedArmTemplate
-          path: ${{ github.workspace }}/build/ExportedArmTemplate/**
-
-      # ✅ 新增：上传至 JFrog Artifactory
-      - name: Upload artifact to JFrog Artifactory
-        env:
-          JF_URL: ${{ secrets.JF_URL }}                    # 例如：https://mycompany.jfrog.io/artifactory
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}  # 用 reference token，而非旧 API Key
-        run: |
-          set -e
-          ARTFILE="${{ github.workspace }}/build/ExportedArmTemplate/ARMTemplateForFactory.json"
-          if [ -f "$ARTFILE" ]; then
-            echo "Uploading $ARTFILE to JFrog..."
-            curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-                 -T "$ARTFILE" \
-                 "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateForFactory.json"
-          else
-            echo "ERROR: $ARTFILE not found. Skipping JFrog upload."
-            exit 1
-          fi
+          path: ${{ github.workspace }}/build/ExportedArmTemplate
 
   release:
     needs: build
@@ -80,18 +47,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ExportedArmTemplate
-
-      # ✅ 如果要从 JFrog 拉取 artifact（例如从 dev pipeline 中下载到 prod 环境）
-      - name: Download ARM template from JFrog
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-        run: |
-          set -e
-          curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-               -O "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateForFactory.json"
-          curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-               -O "$JF_URL/my-adf-repo/adf-artifacts/ARMTemplateParametersForFactory.json"
 
       - name: Azure login
         uses: azure/login@v1
@@ -108,3 +63,4 @@ jobs:
           dataFactoryName: edpypfadfprod
           armTemplateFile: ARMTemplateForFactory.json
           armTemplateParametersFile: ARMTemplateParametersForFactory.json
+          # additionalParameters: 'factoryName=Test-ADF-111' # optional, if needed for dynamic replacements
