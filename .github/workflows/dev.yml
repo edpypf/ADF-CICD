@@ -63,7 +63,7 @@ jobs:
       # 🚀 Upload Exported ARM Template to JFrog Artifactory
       - name: Upload ARM template folder to JFrog Artifactory
         run: |
-          jfrog rt u "build/ExportedArmTemplate/(*)" "my-adf-repo/dev/${{ github.run_number }}/\1" \
+          jfrog rt u "build/ExportedArmTemplate/(*)" "adf_artifact_repo/dev/${{ github.run_number }}/\1" \
             --flat=false          
 
       - name: Azure login
