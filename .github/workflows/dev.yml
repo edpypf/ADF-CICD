@@ -46,7 +46,7 @@ jobs:
           JF_URL: https://trialb2qcp1.jfrog.io
         with:
           oidc-provider-name: github-jfrog
-          oidc-audience: my-audi
+          oidc-audience: myaudi
       
       # 🚀 Upload Exported ARM Template to JFrog Artifactory
       - name: Upload ARM template folder to JFrog Artifactory
