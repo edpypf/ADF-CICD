@@ -43,15 +43,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: ExportedArmTemplate
-          path: build/ExportedArmTemplate
+          path: ${{ github.workspace }}/build/ExportedArmTemplate
 
       # 🧩 Setup JFrog CLI with OIDC authentication
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
         env:
