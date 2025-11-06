@@ -39,26 +39,20 @@ jobs:
           name: ExportedArmTemplate
           path: ${{ github.workspace }}/build/ExportedArmTemplate
 
-      # 🧩 Install JFrog CLI
-      - name: Install JFrog CLI
+      # 🧩 Setup JFrog CLI with OIDC authentication
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
         env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-        run: |
-          curl -fL https://getcli.jfrog.io | sh
-          ./jfrog config add adf \
-            --url="$JF_URL" \
-            --access-token="$JF_ACCESS_TOKEN" \
-            --interactive=false
+          JF_URL: https://trialb2qcp1.jfrog.io
+        with:
+          oidc-provider-name: github-jfrog
+          oidc-audience: my-audi
       
-      # 🚀 Upload Exported ARM Template to Artifactory
+      # 🚀 Upload Exported ARM Template to JFrog Artifactory
       - name: Upload ARM template folder to JFrog Artifactory
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         run: |
-          ./jfrog rt u "build/ExportedArmTemplate/(*)" "my-adf-repo/dev/${{ github.run_number }}/\1" \
-            --flat=false --server-id=adf
+          jfrog rt u "build/ExportedArmTemplate/(*)" "my-adf-repo/dev/${{ github.run_number }}/\1" \
+            --flat=false --server-id=github-jfrog
 
   release:
     needs: build
